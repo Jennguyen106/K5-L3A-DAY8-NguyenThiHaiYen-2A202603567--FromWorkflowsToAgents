@@ -60,13 +60,29 @@ def rogan_gladen(observed_rate: float, sensitivity: float, specificity: float) -
     true_rate = (observed_rate + specificity - 1) / denom
     return min(1.0, max(0.0, true_rate))
 
+
 def paired_bootstrap(a: Sequence[float], b: Sequence[float], *, n_resamples: int = 1000,
                      rng: int = 2027, confidence: float = 0.95) -> tuple[float, float, float]:
     """a[i], b[i] = per-item mean over seeds, SAME items, SAME order.
     Return (mean(a)-mean(b), lo, hi) with scipy.stats.bootstrap(paired=True, method="percentile",
     rng=numpy.random.default_rng(rng)). If a == b everywhere return (0.0, 0.0, 0.0)."""
-    # TODO M4
-    raise NotImplementedError
+    import numpy as np
+    from scipy.stats import bootstrap
+
+    if len(a) != len(b):
+        raise ValueError("a and b must cover the same items in the same order")
+    x, y = np.asarray(a, dtype=float), np.asarray(b, dtype=float)
+    if np.array_equal(x, y):
+        return (0.0, 0.0, 0.0)          # no difference at all: nothing to resample
+    diff = float(x.mean() - y.mean())
+
+    def mean_diff(xs, ys, axis=-1):
+        return np.mean(xs, axis=axis) - np.mean(ys, axis=axis)
+
+    res = bootstrap((x, y), mean_diff, paired=True, vectorized=True, n_resamples=n_resamples,
+                    confidence_level=confidence, method="percentile",
+                    rng=np.random.default_rng(rng))
+    return (diff, float(res.confidence_interval.low), float(res.confidence_interval.high))
 
 
 def pass_at_k(n: int, c: int, k: int) -> float:

@@ -3,3 +3,5 @@
 *.sqlite binary
 *.png binary
 *.pdf binary
+src/data/eval/*.jsonl -text
+src/data/eval/*.json -text
